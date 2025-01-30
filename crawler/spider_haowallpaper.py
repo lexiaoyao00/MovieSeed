@@ -5,7 +5,6 @@ ROOT_URL = "https://haowallpaper.com/"
 
 class PostListParser(PageParser):
     async def parse(self, soup, url):
-        # //*[@id="contentDiv"]/div/div/div[1]/div/div[1]/div[1]/div[2]/a
         post_links = soup.select('div.card img')
         return [link['src'] for link in post_links]
 
