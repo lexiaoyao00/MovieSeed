@@ -90,6 +90,8 @@ class Logger:
         self._log(logging.CRITICAL, message, *args, **kwargs)
 
 
+g_main_logger = Logger("MyApp", level=logging.DEBUG, log_file="app.log")
+g_spider_logger = Logger("spider",level=logging.INFO, log_file="app.log")
 
 # 使用示例
 if __name__ == "__main__":

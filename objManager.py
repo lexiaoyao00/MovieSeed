@@ -29,6 +29,8 @@ class ObjectManager:
         return list(self.objects.keys())
 
 
+g_managere = ObjectManager()
+
 if __name__ == "__main__":
     # 创建一些模拟的模块对象
     class Logger:
