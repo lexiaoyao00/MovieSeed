@@ -1,12 +1,12 @@
 
 from modules.spiders import PageParser,MultiLevelSpider
 
+ROOT_URL = "https://haowallpaper.com/"
+
 class PostListParser(PageParser):
     async def parse(self, soup, url):
         # //*[@id="contentDiv"]/div/div/div[1]/div/div[1]/div[1]/div[2]/a
-        print(f"url={url}")
         post_links = soup.select('div.card img')
-        print(post_links)
         return [link['src'] for link in post_links]
 
     def get_next_links(self, soup, url):
@@ -25,7 +25,7 @@ class SPhaowallpaer:
             0: PostListParser(),
         }
 
-        spider = MultiLevelSpider("https://haowallpaper.com/", parsers, max_depth=1)
+        spider = MultiLevelSpider(ROOT_URL, parsers, max_depth=1)
         results = spider.start()
 
         print(results)
