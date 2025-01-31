@@ -7,6 +7,8 @@ from abc import ABC, abstractmethod
 from urllib.parse import urlencode, urlparse, urlunparse, parse_qsl
 # import re
 import platform
+import pandas as pd
+from collections import defaultdict
 
 from common.logger import g_spider_logger
 
@@ -35,7 +37,7 @@ class MultiLevelSpider(ABC):
         }
         self.visited_urls = set()
         self.semaphore = asyncio.Semaphore(concurrency)
-        self.results = []
+        self.results = defaultdict(list)
 
         if impersonate:
             self.session = AsyncSession(impersonate=impersonate)
@@ -92,7 +94,9 @@ class MultiLevelSpider(ABC):
             if parser:
                 data = await parser.parse(soup, full_url)
                 if data:
-                    self.results.append(data)
+                    for key, values in data.items():
+                        self.results[key].extend(values)
+
                 next_links = parser.get_next_links(soup, full_url)
             else:
                 next_links = []
@@ -112,15 +116,36 @@ class MultiLevelSpider(ABC):
                         tasks.append(task)
                 await asyncio.gather(*tasks)
 
+    def get_series(self):
+        """
+        返回每个属性的 pandas Series
+        """
+        return {key: pd.Series(value) for key, value in self.results.items()}
+
     async def run(self, url=None, params=None):
         try:
             start_url = url or self.base_url
             await self.crawl_page(start_url, 0, params)
         finally:
             await self.session.close()
-        return self.results
+        return self.get_series()
 
     def start(self, url=None, params=None):
         self.set_event_loop_policy()
         return asyncio.run(self.run(url, params))
 
+    def save_to_csv(self, filename):
+        """
+        将结果保存为 CSV 文件
+        """
+        df = pd.DataFrame(self.results)
+        df.to_csv(filename, index=False)
+        g_spider_logger.info(f"Results saved to {filename}")
+
+    def save_to_excel(self, filename):
+        """
+        将结果保存为 Excel 文件
+        """
+        df = pd.DataFrame(self.results)
+        df.to_excel(filename, index=False)
+        g_spider_logger.info(f"Results saved to {filename}")
