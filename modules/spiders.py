@@ -25,6 +25,11 @@ class PageParser(ABC):
         # 默认行为是增加深度
         return current_depth + 1
 
+    def get_pagination_params(self):
+        # 返回一个生成器，用于生成当前级别的分页参数
+        # 例：return [{'p': f'page{i}'} for i in range(1, 7)]  # 6页
+        return [{}]
+
 class MultiLevelSpider(ABC):
     def __init__(self, base_url, parsers, max_depth=3, delay=1, concurrency=5, impersonate=None):
         self.base_url = base_url
@@ -78,9 +83,24 @@ class MultiLevelSpider(ABC):
     def parse_page(self, html):
         return BeautifulSoup(html, 'html.parser')
 
+    async def crawl_level(self, url, depth, base_params=None):
+        parser = self.parsers.get(depth)
+        if not parser:
+            return
+
+        pagination_params = parser.get_pagination_params()
+        if pagination_params:
+            for page_params in pagination_params:
+                params = base_params.copy() if base_params else {}
+                params.update(page_params)
+                g_spider_logger.debug(f'crawl_level now url: {url},now params: {params}')
+                await self.crawl_page(url, depth, params)
+        else:
+            await self.crawl_page(url, depth, base_params)
+
     async def crawl_page(self, url, depth, params=None):
         full_url = self.build_url(url, params)
-        if full_url in self.visited_urls or depth >= self.max_depth:
+        if full_url in self.visited_urls or depth > self.max_depth:
             return
 
         self.visited_urls.add(full_url)
@@ -101,20 +121,19 @@ class MultiLevelSpider(ABC):
             else:
                 next_links = []
 
-            if depth < self.max_depth:
-                tasks = []
-                for link in next_links:
-                    if isinstance(link, tuple):
-                        next_url, next_params = link
-                    else:
-                        next_url, next_params = link, None
+            tasks = []
+            for link in next_links:
+                if isinstance(link, tuple):
+                    next_url, next_params = link
+                else:
+                    next_url, next_params = link, None
 
-                    next_full_url = self.build_url(next_url, next_params)
-                    if next_full_url not in self.visited_urls:
-                        next_depth = parser.get_next_depth(depth)
-                        task = asyncio.create_task(self.crawl_page(next_url, next_depth, next_params))
-                        tasks.append(task)
-                await asyncio.gather(*tasks)
+                next_full_url = self.build_url(next_url, next_params)
+                if next_full_url not in self.visited_urls:
+                    next_depth = parser.get_next_depth(depth)
+                    task = asyncio.create_task(self.crawl_level(next_url, next_depth, next_params))
+                    tasks.append(task)
+            await asyncio.gather(*tasks)
 
     def get_series(self):
         """
@@ -125,7 +144,7 @@ class MultiLevelSpider(ABC):
     async def run(self, url=None, params=None):
         try:
             start_url = url or self.base_url
-            await self.crawl_page(start_url, 0, params)
+            await self.crawl_level(start_url, 0, params)
         finally:
             await self.session.close()
         return self.get_series()
