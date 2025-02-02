@@ -4,7 +4,6 @@ from urllib.parse import urljoin
 
 ROOT_URL = "https://sukebei.nyaa.si/"
 
-
 class ResultParser(PageParser):
     async def parse(self, soup, url):
         links = {}
@@ -88,14 +87,40 @@ class InfoParser(PageParser):
         return []
 
 class SPnyaa:
+    FILTER_NO = 0
+    FILTER_NO_REMAKES = 1
+    FILTER_TRUSTED_ONLY = 2
+
+    CATEGORY_NO = '0_0'
+    CATEGORY_ART = '1_0'
+    CATEGORY_ART_ANIME = '1_1'
+    CATEGORY_ART_DOUJINSHI = '1_2'
+    CATEGORY_ART_GAMES = '1_3'
+    CATEGORY_ART_MANGA = '1_4'
+    CATEGORY_ART_PICTURES = '1_5'
+    CATEGORY_REAL = '2_0'
+    CATEGORY_REAL_PICS = '2_1'
+    CATEGORY_REAL_VIDEOS = '2_2'
+
+    SORT_COMMENTS = 'comments'
+    SORT_SIZE = 'size'
+    SORT_DATE = 'id'
+    SORT_SEEDERS = 'seeders'
+    SORT_LEECHERS = 'leechers'
+    SORT_DATE = 'id'
+    SORT_DOWNLOADS = 'downloads'
+
+    ORDER_DESC = 'desc'
+    ORDER_ASC = 'asc'
+
     def __init__(self):
         self.params = {
-            'f':0,  # filter
-            'c':'0_0',  # categories
+            'f':SPnyaa.FILTER_TRUSTED_ONLY,  # filter
+            'c':SPnyaa.CATEGORY_NO,  # categories
             'q':'', # query
             'p':1,  # page
-            's':'id',   # Sort 默认 date(id)
-            'o':'desc',  # order 降序(desc),升序(asc)
+            's':SPnyaa.SORT_DATE,   # Sort 默认 date(id)
+            'o':SPnyaa.ORDER_DESC,  # order 降序(desc),升序(asc)
         }
 
     def setWord(self,word:str):
