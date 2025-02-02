@@ -21,9 +21,8 @@ class PageParser(ABC):
     def get_next_links(self, soup:BeautifulSoup, url):
         pass
 
-    def get_next_depth(self, current_depth):
-        # 默认行为是增加深度
-        return current_depth + 1
+    def get_next_depth(self, current_depth, is_next_level):
+        return current_depth + 1 if is_next_level else current_depth
 
     def get_pagination_params(self):
         # 返回一个生成器，用于生成当前级别的分页参数
@@ -100,7 +99,7 @@ class MultiLevelSpider(ABC):
 
     async def crawl_page(self, url, depth, params=None):
         full_url = self.build_url(url, params)
-        if full_url in self.visited_urls or depth > self.max_depth:
+        if full_url in self.visited_urls or depth >= self.max_depth:
             return
 
         self.visited_urls.add(full_url)
@@ -118,22 +117,20 @@ class MultiLevelSpider(ABC):
                         self.results[key].extend(values)
 
                 next_links = parser.get_next_links(soup, full_url)
-            else:
-                next_links = []
+                tasks = []
+                for link, is_next_level in next_links:
+                    if isinstance(link, tuple):
+                        next_url, next_params = link
+                    else:
+                        next_url, next_params = link, None
 
-            tasks = []
-            for link in next_links:
-                if isinstance(link, tuple):
-                    next_url, next_params = link
-                else:
-                    next_url, next_params = link, None
+                    next_full_url = self.build_url(next_url, next_params)
+                    if next_full_url not in self.visited_urls:
+                        next_depth = parser.get_next_depth(depth, is_next_level)
+                        task = asyncio.create_task(self.crawl_page(next_url, next_depth, next_params))
+                        tasks.append(task)
 
-                next_full_url = self.build_url(next_url, next_params)
-                if next_full_url not in self.visited_urls:
-                    next_depth = parser.get_next_depth(depth)
-                    task = asyncio.create_task(self.crawl_level(next_url, next_depth, next_params))
-                    tasks.append(task)
-            await asyncio.gather(*tasks)
+                await asyncio.gather(*tasks)
 
     def get_series(self):
         """

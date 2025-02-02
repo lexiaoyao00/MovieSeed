@@ -41,13 +41,14 @@ class Logger:
                 when="midnight",
                 interval=1,
                 backupCount=30,  # Keep logs for 30 days
-                encoding="utf-8"
+                encoding="utf-8",
+                delay=True
             )
             self.file_handler.setFormatter(self.formatter)
             self.file_handler.setLevel(logging.DEBUG)  # Set to lowest level to catch all logs
 
             # Set a custom naming format for rotated files
-            self.file_handler.namer = lambda name: name.replace(".log", "") + "_%Y%m%d.log"
+            # self.file_handler.namer = lambda name: name.replace(".log", "") + "_%Y%m%d.log"   #多余了
 
             self.logger.addHandler(self.file_handler)
 

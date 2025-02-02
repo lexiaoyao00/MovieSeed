@@ -25,7 +25,7 @@ def main():
     # spider_obj = g_managere.get(SPIDER_HAOWALLPAER)
     # spider_obj.crawl()
     spider_obj = g_managere.get(SPIDER_NYAA)
-    spider_obj.setWord('露出')
+    spider_obj.setWord('暴露')
     spider_obj.crawl()
 
 
